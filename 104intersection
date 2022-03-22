@@ -1,0 +1,217 @@
+#!/usr/bin/env python3
+
+from argparse import ArgumentParser
+from math import pow, sqrt, tan, radians
+
+
+def parse_args() -> tuple[int, list[int], list[int], int]:
+    parser = ArgumentParser()
+
+    parser.add_argument(
+        "opt",
+        type=int,
+        choices=[1, 2, 3],
+        help="surface option: 1 for a sphere, 2 for a cylinder, 3 for a cone",
+    )
+
+    parser.add_argument(
+        "point",
+        type=int,
+        nargs=3,
+        help="coordinates of a point by which the light ray passes through",
+    )
+
+    parser.add_argument(
+        "vector",
+        type=int,
+        nargs=3,
+        help="coordinates of a vector parallel to the light ray",
+    )
+
+    parser.add_argument(
+        "parameter",
+        type=int,
+        help="parameter: radius of the sphere, radius of the cylinder, or angle formed by the cone and the Z-axis",
+    )
+
+    try:
+        args = parser.parse_args()
+    except SystemExit:
+        exit(84)
+
+    if args.opt == 1 or args.opt == 2:
+        if args.parameter < 0:
+            exit(84)
+        pass
+
+    if args.opt == 3:
+        if args.parameter <= 0 or args.parameter >= 90:
+            exit(84)
+        pass
+
+    return args.opt, args.point, args.vector, args.parameter
+
+
+def null_vector_checker(arguments: tuple[int, list[int], list[int], int]) -> int:
+    if arguments[2][0] == 0 and arguments[2][1] == 0 and arguments[2][2] == 0:
+        print("There is no intersection")
+        return 1
+    return 0
+
+
+def root_calculus(delta: float, a: float, b: float) -> list[float]:
+    roots: list[float] = [0.0, 0.0]
+    roots[0] = (-b + sqrt(delta)) / (2 * a)
+    roots[1] = (-b - sqrt(delta)) / (2 * a)
+    return roots
+
+
+def sphere_calculus(arguments: tuple[int, list[int], list[int], int]) -> int:
+
+    print(f"Sphere of radius {arguments[3]:.0f}")
+    print(
+        f"Line passing through the point ({arguments[1][0]:.0f}, {arguments[1][1]:.0f}, {arguments[1][2]:.0f}) and parallel to the vector ({arguments[2][0]:.0f}, {arguments[2][1]:.0f}, {arguments[2][2]:.0f})"
+    )
+    if null_vector_checker(arguments) == 1:
+        return 84
+    a: float = arguments[2][0] ** 2 + arguments[2][1] ** 2 + arguments[2][2] ** 2
+    b: float = 2 * (
+        arguments[2][0] * arguments[1][0]
+        + arguments[2][1] * arguments[1][1]
+        + arguments[2][2] * arguments[1][2]
+    )
+    c: float = (
+        arguments[1][0] ** 2
+        + arguments[1][1] ** 2
+        + arguments[1][2] ** 2
+        - arguments[3] ** 2
+    )
+    roots: list[float]
+
+    delta: float = (b ** 2) - (4 * a * c)
+    if delta < 0:
+        print(f"No intersection point.")
+        return 0
+    else:
+        if a == 0:
+            print("There is an infinte number of intersection points.")
+            return 0
+        if delta == 0:
+            print(f"1 intersection point:")
+            roots = [-b / (2 * a)]
+        if delta > 0:
+            print(f"2 intersection points:")
+            roots = root_calculus(delta, a, b)
+        for i in roots:
+            pos: list[float] = [
+                arguments[1][0] + arguments[2][0] * i,
+                arguments[1][1] + arguments[2][1] * i,
+                arguments[1][2] + arguments[2][2] * i,
+            ]
+            print(f"({pos[0]:.3f}, {pos[1]:.3f}, {pos[2]:.3f})")
+    return 0
+
+
+def cylinder_calculus(arguments: tuple[int, list[int], list[int], int]) -> int:
+    print(f"Cylinder of radius {arguments[3]:.0f}")
+    print(
+        f"Line passing through the point ({arguments[1][0]:.0f}, {arguments[1][1]:.0f}, {arguments[1][2]:.0f}) and parallel to the vector ({arguments[2][0]:.0f}, {arguments[2][1]:.0f}, {arguments[2][2]:.0f})"
+    )
+    roots: list[float]
+    if null_vector_checker(arguments) == 1:
+        return 84
+    a: float = arguments[2][0] ** 2 + arguments[2][1] ** 2
+    b: float = 2 * (
+        arguments[2][0] * arguments[1][0] + arguments[2][1] * arguments[1][1]
+    )
+    c: float = arguments[1][0] ** 2 + arguments[1][1] ** 2 - arguments[3] ** 2
+
+    delta: float = (b ** 2) - (4 * a * c)
+    if delta < 0:
+        print(f"No intersection point.")
+        return 0
+    else:
+        if a == 0:
+            print("There is an infinte number of intersection points.")
+            return 0
+        if delta == 0:
+            print(f"1 intersection point:")
+            roots = [-b / (2 * a)]
+        if delta > 0:
+            print(f"2 intersection points:")
+            roots = root_calculus(delta, a, b)
+        for i in roots:
+            pos: list[float] = [
+                arguments[1][0] + arguments[2][0] * i,
+                arguments[1][1] + arguments[2][1] * i,
+                arguments[1][2] + arguments[2][2] * i,
+            ]
+            print(f"({pos[0]:.3f}, {pos[1]:.3f}, {pos[2]:.3f})")
+    return 0
+
+
+def cone_calculus(arguments: tuple[int, list[int], list[int], int]) -> int:
+    print(f"Cone with a {arguments[3]:.0f} degree angle")
+    print(
+        f"Line passing through the point ({arguments[1][0]:.0f}, {arguments[1][1]:.0f}, {arguments[1][2]:.0f}) and parallel to the vector ({arguments[2][0]:.0f}, {arguments[2][1]:.0f}, {arguments[2][2]:.0f})"
+    )
+    roots: list[float]
+    if null_vector_checker(arguments) == 1:
+        return 84
+    a: float = (
+        arguments[2][0] ** 2
+        + arguments[2][1] ** 2
+        - ((arguments[2][2] ** 2) * (tan(radians(arguments[3])) ** 2))
+    )
+    b: float = 2 * (
+        arguments[2][0] * arguments[1][0]
+        + arguments[2][1] * arguments[1][1]
+        - (arguments[2][2] * arguments[1][2] * tan(radians(arguments[3])) ** 2)
+    )
+    c: float = (
+        arguments[1][0] ** 2
+        + arguments[1][1] ** 2
+        - (arguments[1][2] ** 2 * (tan(radians(arguments[3])) ** 2))
+    )
+
+    delta: float = (b ** 2) - (4 * a * c)
+    if delta < 0:
+        print(f"No intersection point.")
+        return 0
+    else:
+        if a == 0:
+            print("There is an infinte number of intersection points.")
+            return 0
+        if delta == 0:
+            print(f"1 intersection point:")
+            roots = [-b / (2 * a)]
+        if delta > 0:
+            print(f"2 intersection points:")
+            roots = root_calculus(delta, a, b)
+        for i in roots:
+            pos: list[float] = [
+                arguments[1][0] + arguments[2][0] * i,
+                arguments[1][1] + arguments[2][1] * i,
+                arguments[1][2] + arguments[2][2] * i,
+            ]
+            print(f"({pos[0]:.3f}, {pos[1]:.3f}, {pos[2]:.3f})")
+    return 0
+
+
+def which_3D_shape(arguments: tuple[int, list[int], list[int], int]) -> int:
+    if arguments[0] == 1:
+        return sphere_calculus(arguments)
+    elif arguments[0] == 2:
+        return cylinder_calculus(arguments)
+    else:
+        return cone_calculus(arguments)
+
+
+def main() -> int:
+    arguments: tuple[int, list[int], list[int], int]
+    arguments = parse_args()
+    return which_3D_shape(arguments)
+
+
+if __name__ == "__main__":
+    exit(main())
